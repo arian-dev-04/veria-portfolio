@@ -97,14 +97,6 @@
           <i :class="{ 'is-fa': language === 'fa' }" aria-hidden="true"></i>
         </button>
         <button
-          class="icon-button"
-          type="button"
-          :aria-label="copy.search"
-          @click="focusSearch"
-        >
-          <span v-html="icons.search" aria-hidden="true"></span>
-        </button>
-        <button
           class="icon-button menu-button"
           type="button"
           :aria-expanded="isMenuOpen"
@@ -345,19 +337,11 @@
         </div>
       </div>
     </Transition>
-
-    <input
-      ref="searchInput"
-      class="visually-hidden"
-      type="search"
-      :aria-label="copy.search"
-      tabindex="-1"
-    />
   </div>
 </template>
 
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 
 const year = new Date().getFullYear();
 const language = ref(localStorage.getItem("arian-language") || "en");
@@ -402,7 +386,6 @@ const translations = {
     footerRole: "Visual artist & photographer",
     rights: "All rights reserved.",
     top: "Top",
-    search: "Search",
     menu: "Open menu",
     close: "Close project",
     videoProject: "Video project",
@@ -444,7 +427,6 @@ const translations = {
     footerRole: "هنرمند بصری و عکاس",
     rights: "تمامی حقوق محفوظ است.",
     top: "بالا",
-    search: "جستجو",
     menu: "باز کردن منو",
     close: "بستن پروژه",
     videoProject: "پروژه ویدیویی",
@@ -466,15 +448,11 @@ const isMenuOpen = ref(false);
 const selectedProject = ref(null);
 const activeFilter = ref("All");
 const activeSection = ref("home");
-const searchInput = ref(null);
-const sectionRefs = [];
 
 const icons = {
   home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m3 11 9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>',
   grid: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg>',
   list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 7h14M5 12h14M5 17h14"/></svg>',
-  search:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>',
   user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="3.2"/><path d="M5.5 20c.8-3.5 3-5.3 6.5-5.3s5.7 1.8 6.5 5.3"/></svg>',
   journal:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="3.5" width="14" height="17" rx="1.5"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>',
@@ -752,11 +730,6 @@ const openProject = (project) => {
 const closeProject = () => {
   selectedProject.value = null;
   document.body.classList.remove("modal-open");
-};
-
-const focusSearch = async () => {
-  await nextTick();
-  searchInput.value?.focus();
 };
 
 const updateActiveSection = () => {
