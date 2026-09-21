@@ -451,11 +451,14 @@
         <div class="modal__content">
           <div class="modal__image-wrap">
             <img
-              :key="selectedProject.id"
               :src="selectedProject.image"
               :alt="selectedProject.alt"
               width="1600"
               height="1100"
+              decoding="async"
+              fetchpriority="high"
+              :class="{ 'is-loading': isModalImageLoading }"
+              @load="handleModalImageLoad"
             />
             <div class="modal__counter" aria-live="polite">
               {{ formatGalleryNumber(currentProjectIndex + 1) }}
@@ -610,10 +613,12 @@ const toggleLanguage = () => {
 const isMenuOpen = ref(false);
 const isLoading = ref(true);
 const selectedProject = ref(null);
+const isModalImageLoading = ref(false);
 const activeFilter = ref("All");
 const activeSection = ref("home");
 let loadingTimer = null;
 let revealObserver = null;
+const modalImageCache = new Map();
 
 const icons = {
   home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m3 11 9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>',
@@ -881,6 +886,51 @@ const currentProjectIndex = computed(() => {
 const formatGalleryNumber = (value) =>
   String(Math.max(value, 0)).padStart(2, "0");
 
+const preloadImage = (src) => {
+  if (!src) return Promise.resolve();
+
+  if (modalImageCache.has(src)) {
+    return modalImageCache.get(src);
+  }
+
+  const image = new Image();
+  image.decoding = "async";
+  image.src = src;
+
+  const promise = (image.decode ? image.decode() : Promise.resolve())
+    .catch(() => undefined)
+    .then(() => image);
+
+  modalImageCache.set(src, promise);
+  return promise;
+};
+
+const preloadProjectWindow = (project) => {
+  const gallery = filteredWorks.value;
+  if (!project || gallery.length === 0) return Promise.resolve();
+
+  const index = gallery.findIndex((item) => item.id === project.id);
+  const safeIndex = index < 0 ? 0 : index;
+  const urls = [
+    gallery[safeIndex]?.image,
+    gallery[(safeIndex - 1 + gallery.length) % gallery.length]?.image,
+    gallery[(safeIndex + 1) % gallery.length]?.image,
+  ].filter(Boolean);
+
+  return Promise.all([...new Set(urls)].map(preloadImage));
+};
+
+const preloadAllProjectImages = () => {
+  const urls = [
+    ...new Set(projects.map((project) => project.image).filter(Boolean)),
+  ];
+  Promise.all(urls.map(preloadImage)).catch(() => undefined);
+};
+
+const handleModalImageLoad = () => {
+  isModalImageLoading.value = false;
+};
+
 const goToProject = (step) => {
   const gallery = filteredWorks.value;
   if (gallery.length < 2) return;
@@ -888,7 +938,16 @@ const goToProject = (step) => {
   const currentIndex = currentProjectIndex.value;
   const safeIndex = currentIndex < 0 ? 0 : currentIndex;
   const nextIndex = (safeIndex + step + gallery.length) % gallery.length;
-  selectedProject.value = gallery[nextIndex];
+  const nextProjectItem = gallery[nextIndex];
+
+  isModalImageLoading.value = true;
+  selectedProject.value = nextProjectItem;
+
+  preloadProjectWindow(nextProjectItem).then(() => {
+    if (selectedProject.value?.id === nextProjectItem.id) {
+      isModalImageLoading.value = false;
+    }
+  });
 };
 
 const previousProject = () => goToProject(-1);
@@ -917,8 +976,15 @@ const toggleMenu = () => {
 };
 
 const openProject = (project) => {
+  isModalImageLoading.value = true;
   selectedProject.value = project;
   document.body.classList.add("modal-open");
+
+  preloadProjectWindow(project).then(() => {
+    if (selectedProject.value?.id === project.id) {
+      isModalImageLoading.value = false;
+    }
+  });
 };
 
 const closeProject = () => {
@@ -1049,7 +1115,17 @@ onMounted(() => {
   // so the visitor actually sees them.
   loadingTimer = window.setTimeout(() => {
     isLoading.value = false;
-    nextTick(() => requestAnimationFrame(observeRevealElements));
+    nextTick(() => {
+      requestAnimationFrame(observeRevealElements);
+
+      // Warm the browser cache after the first paint so gallery opening
+      // and previous/next navigation stay responsive on mobile.
+      if ("requestIdleCallback" in window) {
+        window.requestIdleCallback(preloadAllProjectImages, { timeout: 700 });
+      } else {
+        window.setTimeout(preloadAllProjectImages, 120);
+      }
+    });
   }, 1900);
 });
 
@@ -4095,6 +4171,232 @@ img {
   to {
     opacity: 1;
     transform: scale(1.012);
+  }
+}
+
+/* ---------- Modal: no scrollbar flash while it opens ----------
+   Children that are translated down during their entrance were
+   momentarily enlarging the scrollable area of .modal__content,
+   which made a scrollbar appear and vanish. Clipping the copy block
+   keeps the entrance animation from affecting scroll overflow. */
+.modal__content {
+  overflow-x: hidden;
+}
+
+.modal__copy {
+  overflow: hidden;
+}
+
+/* Less jank when opening: freeze heavy background loops behind the blur */
+body.modal-open .hero__media img,
+body.modal-open .hero__scroll span,
+body.modal-open .contact__glow,
+body.modal-open .contact__monogram {
+  animation-play-state: paused;
+}
+
+/* =========================================================
+   LIGHTBOX PERFORMANCE + STABLE NAVIGATION
+   Keeps project switching visually calm and avoids image
+   re-mount / scale jank on lower-powered mobile devices.
+========================================================= */
+.modal__content {
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.modal__image-wrap {
+  contain: paint;
+  isolation: isolate;
+}
+
+.modal__content img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  transform: none !important;
+  transition: opacity 0.18s ease !important;
+  animation: none !important;
+  will-change: opacity;
+  backface-visibility: hidden;
+}
+
+.modal__content img.is-loading {
+  opacity: 0.18;
+}
+
+.modal__nav {
+  position: fixed;
+  top: 50%;
+  margin-top: 0;
+  transform: translate3d(0, -50%, 0);
+  will-change: transform;
+  touch-action: manipulation;
+}
+
+.modal__nav:hover:not(:disabled) {
+  transform: translate3d(0, -50%, 0) scale(1.06);
+}
+
+/* A softer overlay costs less on small screens than the original heavy blur. */
+@media (max-width: 720px) {
+  .modal {
+    padding: max(10px, env(safe-area-inset-top))
+      max(10px, env(safe-area-inset-right))
+      max(10px, env(safe-area-inset-bottom))
+      max(10px, env(safe-area-inset-left));
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .modal__content {
+    max-height: calc(100dvh - 20px);
+  }
+
+  .modal__nav {
+    top: 50%;
+    width: 42px;
+    height: 42px;
+    margin-top: 0;
+  }
+
+  .modal__nav--prev {
+    left: max(8px, env(safe-area-inset-left));
+  }
+
+  .modal__nav--next {
+    right: max(8px, env(safe-area-inset-right));
+  }
+}
+
+/* =========================================================
+   LOADER MOBILE UPGRADE
+   Warmer easel / softer depth so the stand stays visible
+   instead of disappearing into the black background.
+========================================================= */
+.art-loader {
+  background:
+    radial-gradient(
+      circle at 50% 31%,
+      rgba(121, 98, 72, 0.16),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at 50% 72%,
+      rgba(83, 103, 119, 0.12),
+      transparent 38%
+    ),
+    linear-gradient(145deg, #151413 0%, #0c0d0e 52%, #08090a 100%);
+}
+
+.art-loader__canvas-paper {
+  border-color: #766957;
+  box-shadow:
+    0 28px 65px rgba(0, 0, 0, 0.48),
+    0 0 0 1px rgba(236, 222, 199, 0.11),
+    0 0 45px rgba(196, 153, 103, 0.06);
+}
+
+.art-loader__easel {
+  filter: drop-shadow(0 11px 18px rgba(0, 0, 0, 0.28));
+}
+
+.art-loader__easel::before {
+  content: "";
+  position: absolute;
+  left: 19%;
+  right: 19%;
+  bottom: 35%;
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #d8c8ab 0%, #9f8c70 55%, #665847 100%);
+  box-shadow: 0 3px 7px rgba(0, 0, 0, 0.28);
+}
+
+.art-loader__easel::after {
+  content: "";
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  bottom: -5px;
+  height: 16px;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(213, 190, 153, 0.22),
+    transparent 70%
+  );
+  filter: blur(5px);
+}
+
+.art-loader__easel span,
+.art-loader__easel i {
+  background: linear-gradient(180deg, #d6c5a8 0%, #a18f74 50%, #665847 100%);
+  box-shadow:
+    0 0 0 1px rgba(242, 229, 207, 0.08),
+    0 2px 8px rgba(0, 0, 0, 0.24);
+}
+
+@media (max-width: 720px) {
+  .art-loader__scene {
+    width: min(640px, 92vw);
+    height: min(430px, 55vh);
+    margin-top: -18px;
+  }
+
+  .art-loader__canvas {
+    top: 50px;
+    width: min(500px, 88vw);
+  }
+
+  .art-loader__canvas-paper {
+    border-width: 7px;
+  }
+
+  .art-loader__easel {
+    bottom: 16px;
+    width: 208px;
+    height: 76px;
+  }
+}
+
+@media (max-width: 420px) {
+  .art-loader__scene {
+    width: 94vw;
+    height: 390px;
+    margin-top: -8px;
+  }
+
+  .art-loader__canvas {
+    top: 40px;
+    width: 92vw;
+  }
+
+  .art-loader__canvas-paper {
+    border-width: 6px;
+  }
+
+  .art-loader__easel {
+    bottom: 18px;
+    width: 174px;
+    height: 64px;
+  }
+
+  .art-loader__easel::before {
+    left: 16%;
+    right: 16%;
+    bottom: 34%;
+    height: 5px;
+  }
+
+  .art-loader__easel span,
+  .art-loader__easel i {
+    box-shadow:
+      0 0 0 1px rgba(242, 229, 207, 0.07),
+      0 2px 7px rgba(0, 0, 0, 0.22);
   }
 }
 </style>
