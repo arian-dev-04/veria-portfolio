@@ -3901,7 +3901,7 @@ img {
 @keyframes revealRise {
   0% {
     opacity: 0;
-    transform: translate3d(0, 42px, 0);
+    transform: translate3d(0, -42px, 0);
   }
   40% {
     opacity: 1;
@@ -3926,7 +3926,7 @@ img {
 @keyframes cardUnveil {
   0% {
     opacity: 0;
-    transform: translate3d(0, 56px, 0);
+    transform: translate3d(0, -56px, 0);
     clip-path: inset(22% 0 0 0 round 14px);
   }
   30% {
@@ -4004,7 +4004,7 @@ img {
 @keyframes textRise {
   0% {
     opacity: 0;
-    transform: translate3d(0, 30px, 0);
+    transform: translate3d(0, -30px, 0);
   }
   45% {
     opacity: 1;
@@ -4040,7 +4040,7 @@ img {
 @keyframes heroRise {
   0% {
     opacity: 0;
-    transform: translate3d(0, 34px, 0);
+    transform: translate3d(0, -34px, 0);
   }
   40% {
     opacity: 1;
@@ -4054,7 +4054,7 @@ img {
 @keyframes heroTitle {
   0% {
     opacity: 1;
-    transform: translate3d(0, 56px, 0);
+    transform: translate3d(0, -56px, 0);
     clip-path: inset(100% -10% -20% -10%);
   }
   100% {
