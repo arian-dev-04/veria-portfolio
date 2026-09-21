@@ -451,6 +451,7 @@
         <div class="modal__content">
           <div class="modal__image-wrap">
             <img
+              :key="selectedProject.id"
               :src="selectedProject.image"
               :alt="selectedProject.alt"
               width="1600"
@@ -462,7 +463,7 @@
               {{ formatGalleryNumber(filteredWorks.length) }}
             </div>
           </div>
-          <div class="modal__copy">
+          <div class="modal__copy" :key="selectedProject.id">
             <span class="card-kicker">{{ selectedProject.category }}</span>
             <h2>{{ selectedProject.title }}</h2>
             <p>{{ selectedProject.description }}</p>
@@ -479,7 +480,14 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+} from "vue";
 
 // Local portfolio images. Put pic1.jpg ... pic11.jpg inside /public/images.
 const localImage = (number) => `/images/pic${number}.jpg`;
@@ -886,6 +894,20 @@ const goToProject = (step) => {
 const previousProject = () => goToProject(-1);
 const nextProject = () => goToProject(1);
 
+// When the filter changes, replay the staggered card entrance
+// (and make sure freshly created cards are observed too).
+watch(
+  () => filteredWorks.value.map((project) => project.id).join(","),
+  async () => {
+    await nextTick();
+    document.querySelectorAll(".project-card").forEach((card) => {
+      card.classList.remove("is-visible");
+    });
+    void document.body.offsetHeight; // flush styles so the animation restarts
+    observeRevealElements();
+  },
+);
+
 const closeMenu = () => {
   isMenuOpen.value = false;
 };
@@ -949,8 +971,20 @@ const observeRevealElements = () => {
 
   revealObserver = new IntersectionObserver(
     (entries, observer) => {
-      entries.forEach((entry) => {
-        if (!entry.isIntersecting) return;
+      // Items entering the viewport together are staggered top-left → bottom-right
+      const entering = entries
+        .filter((entry) => entry.isIntersecting)
+        .sort(
+          (a, b) =>
+            a.boundingClientRect.top - b.boundingClientRect.top ||
+            a.boundingClientRect.left - b.boundingClientRect.left,
+        );
+
+      entering.forEach((entry, index) => {
+        entry.target.style.setProperty(
+          "--reveal-delay",
+          String(Math.min(index, 5) * 110),
+        );
         entry.target.classList.add("is-visible");
         observer.unobserve(entry.target);
       });
@@ -1010,10 +1044,12 @@ onMounted(() => {
   window.addEventListener("scroll", updateActiveSection, { passive: true });
   window.addEventListener("keydown", onKeydown);
   updateActiveSection();
-  requestAnimationFrame(observeRevealElements);
 
+  // Reveal animations start only after the loader is gone,
+  // so the visitor actually sees them.
   loadingTimer = window.setTimeout(() => {
     isLoading.value = false;
+    nextTick(() => requestAnimationFrame(observeRevealElements));
   }, 1900);
 });
 
@@ -3686,6 +3722,379 @@ img {
   .is-fa .modal__nav--next {
     right: auto;
     left: 9px;
+  }
+}
+
+/* =========================================================
+   MOTION v2
+   Keep this block LAST in <style>: it overrides the older
+   reveal / hero motion rules above by source order.
+========================================================= */
+:root {
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --rail-from: -28px;
+}
+
+.is-fa {
+  --rail-from: 28px;
+}
+
+/* Stagger index (--n) for children of animated groups */
+:is(
+    .hero__content,
+    .about__copy,
+    .contact__content,
+    .journal__head,
+    .journal-grid,
+    .sidebar__nav,
+    .modal__copy
+  )
+  > :nth-child(1) {
+  --n: 0;
+}
+:is(
+    .hero__content,
+    .about__copy,
+    .contact__content,
+    .journal__head,
+    .journal-grid,
+    .sidebar__nav,
+    .modal__copy
+  )
+  > :nth-child(2) {
+  --n: 1;
+}
+:is(
+    .hero__content,
+    .about__copy,
+    .contact__content,
+    .journal__head,
+    .journal-grid,
+    .sidebar__nav,
+    .modal__copy
+  )
+  > :nth-child(3) {
+  --n: 2;
+}
+:is(
+    .hero__content,
+    .about__copy,
+    .contact__content,
+    .journal__head,
+    .journal-grid,
+    .sidebar__nav,
+    .modal__copy
+  )
+  > :nth-child(4) {
+  --n: 3;
+}
+:is(
+    .hero__content,
+    .about__copy,
+    .contact__content,
+    .journal__head,
+    .journal-grid,
+    .sidebar__nav,
+    .modal__copy
+  )
+  > :nth-child(5) {
+  --n: 4;
+}
+
+/* ---------- Generic reveal: no blur, quickly opaque, calm movement ---------- */
+.reveal-item {
+  filter: none;
+  will-change: auto;
+}
+
+.reveal-item:not(.project-card) {
+  transition: none;
+}
+
+.reveal-item:not(.is-visible) {
+  opacity: 0;
+}
+
+.reveal-item.is-visible {
+  opacity: 1;
+  filter: none;
+  animation: revealRise 1s var(--ease-out) backwards;
+  animation-delay: calc(var(--reveal-delay, 0) * 1ms);
+}
+
+@keyframes revealRise {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 42px, 0);
+  }
+  40% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* ---------- Project cards: rising curtain + image settling from a slow zoom ---------- */
+.project-card.reveal-item.is-visible {
+  animation: cardUnveil 1.15s var(--ease-out) backwards;
+  animation-delay: calc(var(--reveal-delay, 0) * 1ms);
+}
+
+.project-card.reveal-item.is-visible img {
+  animation: imageSettle 1.6s var(--ease-out) backwards;
+  animation-delay: calc(var(--reveal-delay, 0) * 1ms);
+}
+
+@keyframes cardUnveil {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 56px, 0);
+    clip-path: inset(22% 0 0 0 round 14px);
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    clip-path: inset(0 0 0 0 round 14px);
+  }
+}
+
+@keyframes imageSettle {
+  from {
+    transform: scale(1.28);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+/* ---------- About image: rising curtain ---------- */
+.about__image-wrap.reveal-item.is-visible {
+  animation: curtainUp 1.5s var(--ease-out) backwards;
+  animation-delay: calc(var(--reveal-delay, 0) * 1ms);
+}
+
+.about__image-wrap.reveal-item.is-visible img {
+  animation: imageSettle 2s var(--ease-out) backwards;
+  animation-delay: calc(var(--reveal-delay, 0) * 1ms);
+}
+
+@keyframes curtainUp {
+  0% {
+    opacity: 1;
+    clip-path: inset(100% 0 0 0 round 14px);
+  }
+  100% {
+    opacity: 1;
+    clip-path: inset(0 0 0 0 round 14px);
+  }
+}
+
+/* ---------- Text groups: container stays put, children stagger in ---------- */
+.about__copy.reveal-item,
+.journal__head.reveal-item,
+.contact__content.reveal-item,
+.journal-grid.reveal-item {
+  opacity: 1;
+  transform: none;
+}
+
+.about__copy.reveal-item.is-visible,
+.journal__head.reveal-item.is-visible,
+.contact__content.reveal-item.is-visible,
+.journal-grid.reveal-item.is-visible {
+  animation: none;
+}
+
+.about__copy.reveal-item:not(.is-visible) > *,
+.journal__head.reveal-item:not(.is-visible) > *,
+.contact__content.reveal-item:not(.is-visible) > *,
+.journal-grid.reveal-item:not(.is-visible) > * {
+  opacity: 0;
+}
+
+.about__copy.is-visible > *,
+.journal__head.is-visible > *,
+.contact__content.is-visible > *,
+.journal-grid.is-visible > * {
+  animation: textRise 1s var(--ease-out) backwards;
+  animation-delay: calc(var(--reveal-delay, 0) * 1ms + var(--n, 0) * 90ms);
+}
+
+@keyframes textRise {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 30px, 0);
+  }
+  45% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* ---------- Hero: one orchestrated entrance right after the loader ---------- */
+.hero__content.reveal-item,
+.hero__content.reveal-item.is-visible {
+  opacity: 1;
+  transform: none;
+  animation: none;
+}
+
+.hero__content > * {
+  opacity: 0;
+}
+
+.site-ready .hero__content > * {
+  animation: heroRise 1.3s var(--ease-out) both;
+  animation-delay: calc(0.3s + var(--n, 0) * 0.14s);
+}
+
+.site-ready .hero__content > h1 {
+  animation-name: heroTitle;
+  animation-duration: 1.5s;
+}
+
+@keyframes heroRise {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 34px, 0);
+  }
+  40% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes heroTitle {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 56px, 0);
+    clip-path: inset(100% -10% -20% -10%);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    clip-path: inset(-20% -10% -20% -10%);
+  }
+}
+
+.site-ready .hero__media img {
+  animation:
+    heroIntro 2.4s var(--ease-out) both,
+    heroBreath 16s ease-in-out 2.4s infinite alternate;
+}
+
+@keyframes heroIntro {
+  from {
+    transform: scale(1.22);
+    filter: saturate(0.74) contrast(1.04) brightness(0.4);
+  }
+  to {
+    transform: scale(1.015);
+    filter: saturate(0.74) contrast(1.04) brightness(0.83);
+  }
+}
+
+.site-ready .hero__scroll {
+  animation: fadeIn 1s ease 1.5s both;
+}
+
+.hero__scroll span {
+  animation: scrollLine 2.4s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scrollLine {
+  0% {
+    transform: scaleY(0);
+    transform-origin: top;
+  }
+  45% {
+    transform: scaleY(1);
+    transform-origin: top;
+  }
+  55% {
+    transform: scaleY(1);
+    transform-origin: bottom;
+  }
+  100% {
+    transform: scaleY(0);
+    transform-origin: bottom;
+  }
+}
+
+/* ---------- Sidebar and mobile header ---------- */
+.site-ready .sidebar {
+  animation: railIn 1.1s var(--ease-out) 0.2s backwards;
+}
+
+.site-ready .sidebar__nav a {
+  animation: railIn 0.9s var(--ease-out) backwards;
+  animation-delay: calc(0.4s + var(--n, 0) * 0.07s);
+}
+
+.site-ready .mobile-header {
+  animation: headerDrop 0.9s var(--ease-out) 0.2s backwards;
+}
+
+@keyframes railIn {
+  from {
+    opacity: 0;
+    transform: translate3d(var(--rail-from), 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes headerDrop {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -100%, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* ---------- Modal: image and copy re-animate when switching projects ---------- */
+.modal__image-wrap img {
+  animation: modalImageIn 0.8s var(--ease-out) backwards;
+}
+
+.modal__copy > * {
+  animation: textRise 0.8s var(--ease-out) backwards;
+  animation-delay: calc(0.12s + var(--n, 0) * 0.07s);
+}
+
+@keyframes modalImageIn {
+  from {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.012);
   }
 }
 </style>
