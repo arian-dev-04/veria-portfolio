@@ -1,10 +1,115 @@
 <template>
   <div
     class="site-shell"
-    :class="[languageClass, { 'menu-open': isMenuOpen }]"
+    :class="[
+      languageClass,
+      { 'menu-open': isMenuOpen, 'site-ready': !isLoading },
+    ]"
     :lang="language"
     :dir="language === 'fa' ? 'rtl' : 'ltr'"
   >
+    <!-- Artistic loading screen -->
+    <Transition name="art-loader">
+      <div
+        v-if="isLoading"
+        class="art-loader"
+        role="status"
+        :aria-label="copy.loadingLabel"
+      >
+        <div class="art-loader__grain" aria-hidden="true"></div>
+
+        <div class="art-loader__scene" aria-hidden="true">
+          <span class="art-loader__label">STUDIO / 01</span>
+
+          <div class="art-loader__canvas">
+            <div class="art-loader__canvas-paper">
+              <svg viewBox="0 0 640 430" fill="none">
+                <defs>
+                  <linearGradient
+                    id="loaderWash"
+                    x1="90"
+                    y1="35"
+                    x2="540"
+                    y2="390"
+                    gradientUnits="userSpaceOnUse"
+                  >
+                    <stop stop-color="#E8DCC6" stop-opacity=".18" />
+                    <stop
+                      offset=".52"
+                      stop-color="#B96F4B"
+                      stop-opacity=".42"
+                    />
+                    <stop offset="1" stop-color="#5E7587" stop-opacity=".18" />
+                  </linearGradient>
+                  <filter id="loaderBlur">
+                    <feGaussianBlur stdDeviation="18" />
+                  </filter>
+                </defs>
+
+                <rect width="640" height="430" fill="#E8E0D1" />
+                <path
+                  class="loader-paint-wash"
+                  d="M-10 325C92 285 145 210 245 234C327 254 350 340 449 320C531 304 577 244 650 208V455H-10V325Z"
+                  fill="url(#loaderWash)"
+                />
+                <path
+                  class="loader-paint-circle"
+                  d="M176 132C235 83 325 72 385 119C438 162 423 251 366 289C299 333 201 308 158 248C121 196 128 169 176 132Z"
+                  fill="#B95F45"
+                  fill-opacity=".78"
+                  filter="url(#loaderBlur)"
+                />
+                <path
+                  class="loader-paint-line loader-paint-line--one"
+                  d="M62 332C136 289 185 311 247 278C313 242 352 145 425 157C485 167 525 224 584 183"
+                />
+                <path
+                  class="loader-paint-line loader-paint-line--two"
+                  d="M70 95C125 130 159 105 211 121C265 138 286 184 343 181C400 177 427 117 505 121C548 124 571 145 594 161"
+                />
+                <path
+                  class="loader-paint-detail"
+                  d="M106 349C198 328 237 344 298 323C358 303 404 258 476 264C521 268 553 286 590 312"
+                />
+              </svg>
+            </div>
+            <span class="art-loader__tape art-loader__tape--one"></span>
+            <span class="art-loader__tape art-loader__tape--two"></span>
+          </div>
+
+          <div class="art-loader__easel">
+            <span></span>
+            <span></span>
+            <i></i>
+          </div>
+
+          <div class="art-loader__palette">
+            <b></b>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+          </div>
+
+          <div class="art-loader__brush">
+            <span></span>
+            <i></i>
+          </div>
+        </div>
+
+        <div class="art-loader__content">
+          <span class="art-loader__eyebrow">Arian Kalantari</span>
+          <div class="art-loader__rule" aria-hidden="true"><i></i></div>
+        </div>
+
+        <div class="art-loader__footer">
+          <span>Visual practice</span>
+          <span>© {{ year }}</span>
+        </div>
+      </div>
+    </Transition>
+
     <!-- Desktop rail -->
     <aside class="sidebar" :aria-label="copy.primaryNavigation">
       <div class="sidebar__top">
@@ -13,7 +118,7 @@
         </a>
 
         <div class="brand__copy">
-          <strong>Arian kalaneri</strong>
+          <strong>Arian Kalantari</strong>
           <span>{{ copy.role }}</span>
         </div>
       </div>
@@ -131,7 +236,7 @@
       <section id="home" ref="homeSection" class="hero section-anchor">
         <div class="hero__media">
           <img
-            src="https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=2200&q=88"
+            :src="localImage(1)"
             alt="Minimal stone sculpture illuminated by warm afternoon light"
             width="2200"
             height="1300"
@@ -140,7 +245,7 @@
         </div>
         <div class="hero__overlay"></div>
 
-        <div class="hero__content">
+        <div class="hero__content reveal-item">
           <div class="eyebrow">
             <span>{{ copy.heroEyebrow }}</span>
             <i></i>
@@ -161,7 +266,7 @@
 
       <!-- Works -->
       <section id="works" ref="worksSection" class="works section-anchor">
-        <div class="works__toolbar">
+        <div class="works__toolbar reveal-item">
           <div class="filters" role="tablist" :aria-label="copy.projectFilters">
             <button
               v-for="filter in filters"
@@ -199,7 +304,7 @@
           <article
             v-for="project in filteredWorks"
             :key="project.id"
-            class="project-card"
+            class="project-card reveal-item"
             :class="project.size"
             tabindex="0"
             @click="openProject(project)"
@@ -235,16 +340,16 @@
 
       <!-- About -->
       <section id="about" ref="aboutSection" class="about section-anchor">
-        <div class="about__image-wrap">
+        <div class="about__image-wrap reveal-item">
           <img
-            src="https://images.unsplash.com/photo-1526738549149-8e07eca6c147?auto=format&fit=crop&w=1500&q=82"
+            :src="localImage(2)"
             alt="Artist studio with tools and sculptural objects"
             loading="lazy"
             width="1500"
             height="1800"
           />
         </div>
-        <div class="about__copy">
+        <div class="about__copy reveal-item">
           <span class="section-label">{{ copy.aboutLabel }}</span>
           <h2 v-html="copy.aboutTitle"></h2>
           <p>{{ copy.aboutText1 }}</p>
@@ -259,14 +364,14 @@
 
       <!-- Journal -->
       <section id="journal" ref="journalSection" class="journal section-anchor">
-        <div class="journal__head">
+        <div class="journal__head reveal-item">
           <div>
             <span class="section-label">{{ copy.journalLabel }}</span>
             <h2>{{ copy.journalTitle }}</h2>
           </div>
           <a href="#contact">{{ copy.viewArchive }} ↗</a>
         </div>
-        <div class="journal-grid">
+        <div class="journal-grid reveal-item">
           <article v-for="entry in journalEntries" :key="entry.title">
             <span>{{ entry.date }}</span>
             <h3>{{ entry.title }}</h3>
@@ -277,15 +382,15 @@
 
       <!-- Contact -->
       <section id="contact" ref="contactSection" class="contact section-anchor">
-        <div class="contact__visual">
+        <div class="contact__visual reveal-item">
           <div class="contact__glow"></div>
           <span class="contact__monogram">AR</span>
         </div>
-        <div class="contact__content">
+        <div class="contact__content reveal-item">
           <span class="section-label">{{ copy.contactLabel }}</span>
           <h2 v-html="copy.contactTitle"></h2>
-          <a class="email-link" href="mailto:studio@ariankalaneri.art"
-            >studio@ariankalaneri.art</a
+          <a class="email-link" href="mailto:studio@arianKalantari.art"
+            >studio@arianKalantari.art</a
           >
           <div class="contact__row">
             <span>{{ copy.locations }}</span>
@@ -294,9 +399,9 @@
         </div>
       </section>
 
-      <footer class="footer">
+      <footer class="footer reveal-item">
         <div>
-          <strong>Arian kalaneri</strong>
+          <strong>Arian Kalantari</strong>
           <span>{{ copy.footerRole }}</span>
         </div>
         <p>© {{ year }} {{ copy.name }}. {{ copy.rights }}</p>
@@ -322,17 +427,50 @@
         >
           ×
         </button>
+
+        <button
+          class="modal__nav modal__nav--prev"
+          type="button"
+          :aria-label="copy.previousImage"
+          :disabled="filteredWorks.length < 2"
+          @click.stop="previousProject"
+        >
+          ‹
+        </button>
+
+        <button
+          class="modal__nav modal__nav--next"
+          type="button"
+          :aria-label="copy.nextImage"
+          :disabled="filteredWorks.length < 2"
+          @click.stop="nextProject"
+        >
+          ›
+        </button>
+
         <div class="modal__content">
-          <img
-            :src="selectedProject.image"
-            :alt="selectedProject.alt"
-            width="1600"
-            height="1100"
-          />
+          <div class="modal__image-wrap">
+            <img
+              :src="selectedProject.image"
+              :alt="selectedProject.alt"
+              width="1600"
+              height="1100"
+            />
+            <div class="modal__counter" aria-live="polite">
+              {{ formatGalleryNumber(currentProjectIndex + 1) }}
+              <span>/</span>
+              {{ formatGalleryNumber(filteredWorks.length) }}
+            </div>
+          </div>
           <div class="modal__copy">
             <span class="card-kicker">{{ selectedProject.category }}</span>
             <h2>{{ selectedProject.title }}</h2>
             <p>{{ selectedProject.description }}</p>
+            <div class="modal__hint">
+              <span>{{ copy.previousImage }}</span>
+              <i></i>
+              <span>{{ copy.nextImage }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -343,6 +481,9 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 
+// Local portfolio images. Put pic1.jpg ... pic11.jpg inside /public/images.
+const localImage = (number) => `/images/pic${number}.jpg`;
+
 const year = new Date().getFullYear();
 const language = ref(localStorage.getItem("arian-language") || "en");
 const languageClass = computed(() =>
@@ -352,9 +493,9 @@ const languageClass = computed(() =>
 const translations = {
   en: {
     primaryNavigation: "Primary navigation",
-    homeLabel: "Arian kalaneri home",
+    homeLabel: "Arian Kalantari home",
     socialLinks: "Social links",
-    name: "Arian kalaneri",
+    name: "Arian Kalantari",
     role: "Artist / Photographer / Explorer",
     mobileRole: "Artist / Photographer",
     heroEyebrow: "Welcome to my portfolio",
@@ -388,6 +529,9 @@ const translations = {
     top: "Top",
     menu: "Open menu",
     close: "Close project",
+    previousImage: "Previous image",
+    nextImage: "Next image",
+    loadingLabel: "Loading portfolio",
     videoProject: "Video project",
   },
   fa: {
@@ -429,6 +573,9 @@ const translations = {
     top: "بالا",
     menu: "باز کردن منو",
     close: "بستن پروژه",
+    previousImage: "تصویر قبلی",
+    nextImage: "تصویر بعدی",
+    loadingLabel: "در حال بارگذاری پورتفولیو",
     videoProject: "پروژه ویدیویی",
   },
 };
@@ -441,13 +588,24 @@ const toggleLanguage = () => {
   localStorage.setItem("arian-language", language.value);
   document.documentElement.lang = language.value;
   document.documentElement.dir = language.value === "fa" ? "rtl" : "ltr";
+
+  if (selectedProject.value) {
+    selectedProject.value =
+      localizedProjects.value.find(
+        (project) => project.id === selectedProject.value.id,
+      ) || null;
+  }
+
   updateSeo();
 };
 
 const isMenuOpen = ref(false);
+const isLoading = ref(true);
 const selectedProject = ref(null);
 const activeFilter = ref("All");
 const activeSection = ref("home");
+let loadingTimer = null;
+let revealObserver = null;
 
 const icons = {
   home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m3 11 9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>',
@@ -536,9 +694,8 @@ const projects = [
     title: "Studio Fragments",
     description:
       "A series of visual experiments with form, light and material.",
-    image:
-      "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1500&q=84",
-    alt: "Sculptural forms inside a sunlit studio",
+    image: localImage(3),
+    alt: "Image unavailable",
     size: "wide",
   },
   {
@@ -546,9 +703,8 @@ const projects = [
     category: "Studies",
     title: "Light & Matter",
     description: "Explorations in texture, shadow and the unseen.",
-    image:
-      "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1200&q=84",
-    alt: "Dark abstract landscape with layered texture",
+    image: localImage(4),
+    alt: "Image unavailable",
     size: "medium",
   },
   {
@@ -556,9 +712,8 @@ const projects = [
     category: "Archive",
     title: "Rural Structures",
     description: "The quiet architecture of everyday life.",
-    image:
-      "https://images.unsplash.com/photo-1494783367193-149034c05e8f?auto=format&fit=crop&w=1200&q=84",
-    alt: "Wooden rural fence at sunset",
+    image: localImage(5),
+    alt: "Image unavailable",
     size: "medium",
   },
   {
@@ -566,9 +721,8 @@ const projects = [
     category: "Studies",
     title: "Material & Form",
     description: "How objects, surfaces and light shape our perception.",
-    image:
-      "https://images.unsplash.com/photo-1504198453319-5ce911bafcde?auto=format&fit=crop&w=1200&q=84",
-    alt: "Geometric shadow pattern across an interior wall",
+    image: localImage(6),
+    alt: "Image unavailable",
     size: "medium",
   },
   {
@@ -576,9 +730,8 @@ const projects = [
     category: "Artwork",
     title: "Objects & Space",
     description: "Small objects. Big questions.",
-    image:
-      "https://images.unsplash.com/photo-1618220179428-22790b461013?auto=format&fit=crop&w=1200&q=84",
-    alt: "Sculptural objects arranged on shelves",
+    image: localImage(7),
+    alt: "Image unavailable",
     size: "wide",
   },
   {
@@ -586,9 +739,8 @@ const projects = [
     category: "Archive",
     title: "Interior Notes",
     description: "Spaces, moods and moments.",
-    image:
-      "https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=1200&q=84",
-    alt: "Mountain landscape beneath dramatic storm clouds",
+    image: localImage(8),
+    alt: "Image unavailable",
     size: "medium",
   },
   {
@@ -596,9 +748,8 @@ const projects = [
     category: "Artwork",
     title: "The Hand & The Surface",
     description: "A tactile study of touch, motion and memory.",
-    image:
-      "https://images.unsplash.com/photo-1549490349-8643362247b5?auto=format&fit=crop&w=1200&q=84",
-    alt: "Hand resting on a dark sculptural surface",
+    image: localImage(9),
+    alt: "Image unavailable",
     size: "wide",
     video: true,
   },
@@ -607,9 +758,8 @@ const projects = [
     category: "Studies",
     title: "Concrete Silence",
     description: "Light passing through severe architectural geometry.",
-    image:
-      "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=84",
-    alt: "Minimal concrete interior with strong light and shadow",
+    image: localImage(10),
+    alt: "Image unavailable",
     size: "medium",
   },
   {
@@ -617,9 +767,8 @@ const projects = [
     category: "News",
     title: "The Quiet Space",
     description: "New project — May 12, 2026.",
-    image:
-      "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=1200&q=84",
-    alt: "Quiet contemporary workspace",
+    image: localImage(11),
+    alt: "Image unavailable",
     size: "medium",
   },
 ];
@@ -714,6 +863,29 @@ const filteredWorks = computed(() => {
   );
 });
 
+const currentProjectIndex = computed(() => {
+  if (!selectedProject.value) return -1;
+  return filteredWorks.value.findIndex(
+    (project) => project.id === selectedProject.value.id,
+  );
+});
+
+const formatGalleryNumber = (value) =>
+  String(Math.max(value, 0)).padStart(2, "0");
+
+const goToProject = (step) => {
+  const gallery = filteredWorks.value;
+  if (gallery.length < 2) return;
+
+  const currentIndex = currentProjectIndex.value;
+  const safeIndex = currentIndex < 0 ? 0 : currentIndex;
+  const nextIndex = (safeIndex + step + gallery.length) % gallery.length;
+  selectedProject.value = gallery[nextIndex];
+};
+
+const previousProject = () => goToProject(-1);
+const nextProject = () => goToProject(1);
+
 const closeMenu = () => {
   isMenuOpen.value = false;
 };
@@ -743,23 +915,63 @@ const updateActiveSection = () => {
 };
 
 const onKeydown = (event) => {
+  if (selectedProject.value) {
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      previousProject();
+      return;
+    }
+
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      nextProject();
+      return;
+    }
+  }
+
   if (event.key === "Escape") {
     isMenuOpen.value = false;
     closeProject();
   }
 };
 
+const observeRevealElements = () => {
+  const elements = document.querySelectorAll(".reveal-item:not(.is-visible)");
+
+  if (!elements.length) return;
+
+  if (!("IntersectionObserver" in window)) {
+    elements.forEach((element) => element.classList.add("is-visible"));
+    return;
+  }
+
+  if (revealObserver) revealObserver.disconnect();
+
+  revealObserver = new IntersectionObserver(
+    (entries, observer) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add("is-visible");
+        observer.unobserve(entry.target);
+      });
+    },
+    { threshold: 0.12, rootMargin: "0px 0px -7% 0px" },
+  );
+
+  elements.forEach((element) => revealObserver.observe(element));
+};
+
 const updateSeo = () => {
   const isFa = language.value === "fa";
   const title = isFa
     ? "آرین کلانتری — هنرمند، عکاس و کاوشگر بصری"
-    : "Arian kalaneri — Artist, Photographer & Visual Explorer";
+    : "Arian Kalantari — Artist, Photographer & Visual Explorer";
   const description = isFa
     ? "پورتفولیوی آرین کلانتری؛ هنرمند و عکاس با تمرکز بر نور، فضا، متریال، معماری و منظره‌های آرام."
-    : "Arian kalaneri is a visual artist and photographer exploring light, space, material, architecture and quiet landscapes.";
+    : "Arian Kalantari is a visual artist and photographer exploring light, space, material, architecture and quiet landscapes.";
   const ogDescription = isFa
     ? "آثار منتخب، مطالعات و یادداشت‌های بصری آرین کلانتری."
-    : "Selected works, studies and visual notes by Arian kalaneri.";
+    : "Selected works, studies and visual notes by Arian Kalantari.";
 
   document.title = title;
   document.documentElement.lang = language.value;
@@ -798,12 +1010,20 @@ onMounted(() => {
   window.addEventListener("scroll", updateActiveSection, { passive: true });
   window.addEventListener("keydown", onKeydown);
   updateActiveSection();
+  requestAnimationFrame(observeRevealElements);
+
+  loadingTimer = window.setTimeout(() => {
+    isLoading.value = false;
+  }, 1900);
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener("scroll", updateActiveSection);
   window.removeEventListener("keydown", onKeydown);
   document.body.classList.remove("modal-open");
+
+  if (loadingTimer) window.clearTimeout(loadingTimer);
+  if (revealObserver) revealObserver.disconnect();
 });
 </script>
 
@@ -876,6 +1096,525 @@ img {
 .site-shell {
   min-height: 100vh;
   background: var(--bg);
+}
+
+/* =========================================================
+   ARTISTIC LOADER
+========================================================= */
+.art-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #0a0b0c;
+  color: #efebe2;
+  isolation: isolate;
+}
+
+.art-loader__grain {
+  position: absolute;
+  inset: -20%;
+  z-index: -1;
+  opacity: 0.5;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.016) 0 1px,
+      transparent 1px 4px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.012) 0 1px,
+      transparent 1px 6px
+    );
+  transform: rotate(-1deg);
+}
+
+.art-loader__scene {
+  position: relative;
+  width: min(690px, 82vw);
+  height: min(500px, 58vh);
+  margin-top: -38px;
+}
+
+.art-loader__label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: rgba(239, 235, 226, 0.43);
+  font-size: 8px;
+  letter-spacing: 0.28em;
+}
+
+.art-loader__canvas {
+  position: absolute;
+  top: 56px;
+  left: 50%;
+  width: min(560px, 72vw);
+  aspect-ratio: 1.48 / 1;
+  transform: translateX(-50%) rotate(-1.6deg);
+  animation: loaderCanvasIn 1.25s cubic-bezier(0.2, 0.76, 0.2, 1) both;
+}
+
+.art-loader__canvas::before {
+  content: "";
+  position: absolute;
+  inset: 15px -16px -20px;
+  border: 1px solid rgba(220, 211, 194, 0.08);
+  background: rgba(255, 255, 255, 0.025);
+  filter: blur(0.3px);
+}
+
+.art-loader__canvas-paper {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border: 9px solid #1b1d1e;
+  background: #e8e0d1;
+  box-shadow:
+    0 28px 65px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.06);
+  animation: canvasPaperFloat 6s ease-in-out 1.3s infinite;
+}
+
+.art-loader__canvas-paper svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.art-loader__tape {
+  position: absolute;
+  top: -11px;
+  width: 70px;
+  height: 28px;
+  background: rgba(213, 197, 164, 0.76);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+}
+
+.art-loader__tape--one {
+  left: 11%;
+  transform: rotate(-6deg);
+}
+
+.art-loader__tape--two {
+  right: 9%;
+  transform: rotate(7deg);
+}
+
+.loader-paint-wash {
+  opacity: 0;
+  transform-origin: 50% 100%;
+  animation: paintReveal 1.85s 0.12s ease-out forwards;
+}
+
+.loader-paint-circle {
+  opacity: 0;
+  transform-origin: 40% 55%;
+  animation: paintBloom 1.35s 0.25s cubic-bezier(0.22, 0.8, 0.2, 1) forwards;
+}
+
+.loader-paint-line,
+.loader-paint-detail {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  stroke-dasharray: 1100;
+  stroke-dashoffset: 1100;
+}
+
+.loader-paint-line--one {
+  stroke: #5a6f7e;
+  stroke-width: 13;
+  stroke-opacity: 0.78;
+  animation: paintDraw 1.8s 0.2s cubic-bezier(0.55, 0, 0.25, 1) forwards;
+}
+
+.loader-paint-line--two {
+  stroke: #2c3236;
+  stroke-width: 8;
+  stroke-opacity: 0.7;
+  animation: paintDraw 1.55s 0.48s cubic-bezier(0.55, 0, 0.25, 1) forwards;
+}
+
+.loader-paint-detail {
+  stroke: #f6efe3;
+  stroke-width: 4;
+  stroke-opacity: 0.58;
+  animation: paintDraw 1.2s 0.82s cubic-bezier(0.55, 0, 0.25, 1) forwards;
+}
+
+.art-loader__easel {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  width: 255px;
+  height: 92px;
+  transform: translateX(-50%);
+}
+
+.art-loader__easel span,
+.art-loader__easel i {
+  position: absolute;
+  bottom: 0;
+  display: block;
+  width: 3px;
+  height: 100%;
+  transform-origin: bottom center;
+  background: #1a1b1b;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+.art-loader__easel span:first-child {
+  left: 42%;
+  transform: rotate(13deg);
+}
+
+.art-loader__easel span:nth-child(2) {
+  right: 42%;
+  transform: rotate(-13deg);
+}
+
+.art-loader__easel i {
+  left: 50%;
+  width: 4px;
+  height: 92%;
+  transform: translateX(-50%);
+}
+
+.art-loader__palette {
+  position: absolute;
+  left: 8px;
+  bottom: 32px;
+  width: 102px;
+  height: 70px;
+  padding: 12px 15px;
+  border-radius: 58% 43% 48% 52% / 53% 57% 45% 47%;
+  background: #d2c4ad;
+  box-shadow: 0 15px 25px rgba(0, 0, 0, 0.2);
+  transform: rotate(-13deg);
+  animation: paletteFloat 3.6s ease-in-out infinite;
+}
+
+.art-loader__palette b,
+.art-loader__palette i {
+  position: absolute;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.22);
+}
+
+.art-loader__palette b {
+  right: 11px;
+  bottom: 11px;
+  width: 28px;
+  height: 28px;
+  border: 5px solid rgba(108, 96, 77, 0.2);
+  background: transparent;
+}
+
+.art-loader__palette i:nth-child(2) {
+  top: 12px;
+  left: 16px;
+  background: #9d493c;
+}
+.art-loader__palette i:nth-child(3) {
+  top: 10px;
+  left: 43px;
+  background: #d49b54;
+}
+.art-loader__palette i:nth-child(4) {
+  top: 24px;
+  left: 28px;
+  background: #5d7485;
+}
+.art-loader__palette i:nth-child(5) {
+  top: 31px;
+  right: 13px;
+  background: #4d3d40;
+}
+.art-loader__palette i:nth-child(6) {
+  bottom: 14px;
+  left: 23px;
+  background: #efe6d5;
+}
+
+.art-loader__brush {
+  position: absolute;
+  right: 5px;
+  bottom: 24px;
+  width: 160px;
+  height: 18px;
+  transform: rotate(-29deg);
+  animation: brushFloat 2.8s ease-in-out infinite;
+}
+
+.art-loader__brush::before {
+  content: "";
+  position: absolute;
+  left: 11px;
+  top: 5px;
+  width: 110px;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    #ad7656 0 48%,
+    #e8d8bc 48% 62%,
+    #1f2223 62% 100%
+  );
+}
+
+.art-loader__brush span {
+  position: absolute;
+  left: 0;
+  top: 2px;
+  width: 30px;
+  height: 14px;
+  border-radius: 2px 60% 60% 2px;
+  background: #e1d5bf;
+  clip-path: polygon(0 50%, 70% 0, 100% 50%, 70% 100%);
+}
+
+.art-loader__brush i {
+  position: absolute;
+  right: 0;
+  top: 5px;
+  width: 28px;
+  height: 8px;
+  border-radius: 0 999px 999px 0;
+  background: #8f744e;
+}
+
+.art-loader__content {
+  position: absolute;
+  right: 0;
+  bottom: 10px;
+  left: 0;
+  z-index: 3;
+  display: grid;
+  justify-items: center;
+  text-align: center;
+}
+
+.art-loader__eyebrow {
+  color: rgba(239, 235, 226, 0.5);
+  font-size: 8px;
+  letter-spacing: 0.27em;
+  text-transform: uppercase;
+}
+
+.art-loader__content strong {
+  margin-top: 8px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(28px, 4vw, 48px);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.art-loader__rule {
+  position: relative;
+  width: min(150px, 35vw);
+  height: 1px;
+  margin-top: 19px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.art-loader__rule i {
+  display: block;
+  width: 35%;
+  height: 100%;
+  background: #e8ddca;
+  animation: loaderSweep 1.15s ease-in-out infinite;
+}
+
+.art-loader__footer {
+  position: absolute;
+  right: 28px;
+  bottom: 24px;
+  left: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: rgba(214, 210, 201, 0.4);
+  font-size: 7px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+@keyframes loaderCanvasIn {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(18px) rotate(-4deg) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) rotate(-1.6deg) scale(1);
+  }
+}
+
+@keyframes paintReveal {
+  0% {
+    opacity: 0;
+    transform: scaleY(0.2);
+  }
+  100% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+@keyframes paintBloom {
+  0% {
+    opacity: 0;
+    transform: scale(0.25);
+  }
+  65% {
+    opacity: 0.72;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 0.62;
+    transform: scale(1);
+  }
+}
+
+@keyframes paintDraw {
+  0% {
+    stroke-dashoffset: 1100;
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+@keyframes paletteFloat {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-13deg);
+  }
+  50% {
+    transform: translateY(-7px) rotate(-9deg);
+  }
+}
+
+@keyframes brushFloat {
+  0%,
+  100% {
+    transform: rotate(-29deg) translate3d(0, 0, 0);
+  }
+  50% {
+    transform: rotate(-24deg) translate3d(-5px, -5px, 0);
+  }
+}
+
+@keyframes loaderSweep {
+  0% {
+    transform: translateX(-160%);
+  }
+  100% {
+    transform: translateX(420%);
+  }
+}
+
+@keyframes canvasPaperFloat {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-4px) rotate(0.18deg);
+  }
+}
+
+.art-loader-enter-active,
+.art-loader-leave-active {
+  transition:
+    opacity 0.75s ease,
+    visibility 0.75s ease;
+}
+
+.art-loader-enter-from,
+.art-loader-leave-to {
+  opacity: 0;
+  visibility: hidden;
+}
+
+@media (max-width: 720px) {
+  .art-loader__scene {
+    height: min(430px, 56vh);
+    margin-top: -28px;
+  }
+
+  .art-loader__canvas {
+    top: 46px;
+    width: min(480px, 88vw);
+  }
+
+  .art-loader__easel {
+    bottom: 20px;
+    width: 210px;
+    height: 74px;
+  }
+
+  .art-loader__palette {
+    left: 0;
+    bottom: 28px;
+    transform: scale(0.82) rotate(-13deg);
+    transform-origin: left bottom;
+  }
+
+  .art-loader__brush {
+    right: -8px;
+    bottom: 19px;
+    transform: scale(0.78) rotate(-29deg);
+    transform-origin: right bottom;
+  }
+
+  .art-loader__content {
+    bottom: 4px;
+  }
+
+  .art-loader__footer {
+    right: 18px;
+    bottom: 16px;
+    left: 18px;
+  }
+}
+
+@media (max-width: 420px) {
+  .art-loader__label {
+    top: 4px;
+    font-size: 7px;
+  }
+
+  .art-loader__canvas {
+    top: 50px;
+    width: 92vw;
+  }
+
+  .art-loader__palette,
+  .art-loader__brush {
+    display: none;
+  }
+
+  .art-loader__easel {
+    bottom: 32px;
+  }
+
+  .art-loader__content strong {
+    font-size: 29px;
+  }
 }
 
 .sidebar {
@@ -1194,6 +1933,22 @@ img {
 }
 
 .is-fa .modal__close {
+  right: auto;
+  left: 22px;
+}
+
+.is-fa .modal__counter {
+  right: auto;
+  left: 18px;
+}
+
+/* Keep gallery navigation semantically mirrored in RTL. */
+.is-fa .modal__nav--prev {
+  left: auto;
+  right: 22px;
+}
+
+.is-fa .modal__nav--next {
   right: auto;
   left: 22px;
 }
@@ -1946,6 +2701,238 @@ img {
   display: none;
 }
 
+/* =========================================================
+   REFINED MOTION
+========================================================= */
+.reveal-item {
+  opacity: 0;
+  transform: translate3d(0, 26px, 0);
+  filter: blur(4px);
+  transition:
+    opacity 0.8s cubic-bezier(0.22, 0.8, 0.24, 1),
+    transform 0.9s cubic-bezier(0.22, 0.8, 0.24, 1),
+    filter 0.8s ease;
+  will-change: opacity, transform, filter;
+}
+
+.reveal-item.is-visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  filter: blur(0);
+}
+
+.site-ready .main-content {
+  animation: siteReveal 0.95s cubic-bezier(0.22, 0.8, 0.24, 1) both;
+}
+
+.site-ready .hero__media img {
+  animation: heroBreath 16s ease-in-out 0.2s infinite alternate;
+}
+
+.hero__media {
+  overflow: hidden;
+}
+
+.about__image-wrap,
+.contact__visual {
+  isolation: isolate;
+}
+
+.about__image-wrap::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    125deg,
+    transparent 26%,
+    rgba(255, 255, 255, 0.08) 48%,
+    transparent 70%
+  );
+  transform: translateX(-115%);
+  transition: transform 1.1s cubic-bezier(0.22, 0.8, 0.24, 1);
+}
+
+.about__image-wrap {
+  position: relative;
+}
+
+.about__image-wrap:hover::after {
+  transform: translateX(115%);
+}
+
+.project-card {
+  transform: translate3d(0, 0, 0);
+  transition:
+    transform 0.45s cubic-bezier(0.22, 0.8, 0.22, 1),
+    box-shadow 0.45s ease,
+    border-color 0.35s ease;
+}
+
+.project-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    110deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.13) 48%,
+    transparent 66%
+  );
+  transform: translateX(-125%);
+  transition: transform 0.9s cubic-bezier(0.22, 0.8, 0.24, 1);
+}
+
+.project-card:hover,
+.project-card:focus-visible {
+  transform: translate3d(0, -5px, 0);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.22);
+}
+
+.project-card:hover::after,
+.project-card:focus-visible::after {
+  transform: translateX(125%);
+}
+
+.project-card:nth-child(2) {
+  transition-delay: 0.03s;
+}
+.project-card:nth-child(3) {
+  transition-delay: 0.06s;
+}
+.project-card:nth-child(4) {
+  transition-delay: 0.09s;
+}
+
+.journal-grid article {
+  position: relative;
+  transition:
+    color 0.3s ease,
+    transform 0.35s cubic-bezier(0.22, 0.8, 0.24, 1),
+    padding 0.35s ease;
+}
+
+.journal-grid article::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 30px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.48);
+  transform-origin: left center;
+  transform: scaleX(0.45);
+  transition: transform 0.35s ease;
+}
+
+.journal-grid article:hover {
+  transform: translateY(-5px);
+}
+
+.journal-grid article:hover::after {
+  transform: scaleX(1);
+}
+
+.contact__glow {
+  animation: contactGlow 7s ease-in-out infinite alternate;
+}
+
+.contact__monogram {
+  animation: monogramFloat 5.5s ease-in-out infinite;
+}
+
+.modal__content {
+  animation: modalRise 0.55s cubic-bezier(0.22, 0.8, 0.24, 1) both;
+}
+
+.modal__image-wrap {
+  overflow: hidden;
+}
+
+.modal__content img {
+  transform: scale(1.012);
+  transition: transform 0.8s cubic-bezier(0.22, 0.8, 0.24, 1);
+}
+
+.modal:hover .modal__content img {
+  transform: scale(1);
+}
+
+.modal__nav:hover:not(:disabled) {
+  transform: translateY(-50%) scale(1.06);
+}
+
+@keyframes siteReveal {
+  from {
+    opacity: 0.86;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes heroBreath {
+  0% {
+    transform: scale(1.015);
+  }
+  100% {
+    transform: scale(1.06);
+  }
+}
+
+@keyframes contactGlow {
+  0% {
+    transform: scale(0.98);
+    opacity: 0.74;
+  }
+  100% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+}
+
+@keyframes monogramFloat {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-6px) rotate(-1deg);
+  }
+}
+
+@keyframes modalRise {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .reveal-item {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
 .modal {
   position: fixed;
   inset: 0;
@@ -1953,7 +2940,7 @@ img {
   display: grid;
   place-items: center;
   padding: 28px;
-  background: rgba(3, 4, 5, 0.8);
+  background: rgba(3, 4, 5, 0.82);
   backdrop-filter: blur(16px);
 }
 
@@ -1964,11 +2951,40 @@ img {
   border: 1px solid var(--line);
   border-radius: 18px;
   background: #0d1012;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.38);
+}
+
+.modal__image-wrap {
+  position: relative;
+  background: #090b0d;
 }
 
 .modal__content img {
   max-height: 70vh;
   object-fit: cover;
+}
+
+.modal__counter {
+  position: absolute;
+  right: 18px;
+  bottom: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 56px;
+  padding: 7px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(6, 8, 10, 0.62);
+  backdrop-filter: blur(9px);
+  color: rgba(242, 239, 231, 0.82);
+  font-size: 8px;
+  line-height: 1;
+  letter-spacing: 0.12em;
+}
+
+.modal__counter span {
+  color: rgba(242, 239, 231, 0.3);
 }
 
 .modal__copy {
@@ -1990,22 +3006,77 @@ img {
   line-height: 1.7;
 }
 
-.modal__close {
+.modal__hint {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 18px;
+  color: #777b7e;
+  font-size: 7px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.modal__hint i {
+  width: 26px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.modal__close,
+.modal__nav {
   position: absolute;
-  top: 18px;
-  right: 22px;
-  z-index: 2;
+  z-index: 3;
   display: grid;
-  width: 38px;
-  height: 38px;
   place-items: center;
   border: 1px solid rgba(255, 255, 255, 0.28);
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.25);
   color: #fff;
+  cursor: pointer;
+  backdrop-filter: blur(9px);
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.modal__close:hover,
+.modal__nav:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.modal__close {
+  top: 18px;
+  right: 22px;
+  width: 38px;
+  height: 38px;
   font-size: 24px;
   line-height: 1;
-  cursor: pointer;
+}
+
+.modal__nav {
+  top: 50%;
+  width: 46px;
+  height: 46px;
+  margin-top: -23px;
+  font-size: 31px;
+  line-height: 1;
+}
+
+.modal__nav--prev {
+  left: 22px;
+}
+
+.modal__nav--next {
+  right: 22px;
+}
+
+.modal__nav:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 
 .fade-enter-active,
@@ -2455,6 +3526,35 @@ img {
     top: 13px;
     right: 13px;
   }
+
+  .modal__nav {
+    top: 34%;
+    width: 40px;
+    height: 40px;
+    margin-top: -20px;
+    font-size: 28px;
+  }
+
+  .modal__nav--prev {
+    left: 9px;
+  }
+
+  .modal__nav--next {
+    right: 9px;
+  }
+
+  .modal__counter {
+    right: 11px;
+    bottom: 11px;
+  }
+
+  .modal__copy {
+    padding: 19px 18px 21px;
+  }
+
+  .modal__copy h2 {
+    font-size: 29px;
+  }
 }
 
 @media (max-width: 420px) {
@@ -2495,6 +3595,36 @@ img {
 
   .stats span {
     line-height: 1.35;
+  }
+}
+
+@media (max-width: 720px) {
+  .art-loader__painting {
+    width: 112vw;
+    height: 70vw;
+  }
+
+  .art-loader__monogram {
+    width: 58px;
+    height: 58px;
+    margin-bottom: 16px;
+  }
+
+  .art-loader__footer {
+    right: 17px;
+    bottom: 17px;
+    left: 17px;
+  }
+}
+
+@media (max-width: 420px) {
+  .art-loader__content strong {
+    font-size: 31px;
+  }
+
+  .art-loader__painting {
+    width: 128vw;
+    height: 82vw;
   }
 }
 
@@ -2541,6 +3671,21 @@ img {
   .is-fa .modal__close {
     right: auto;
     left: 13px;
+  }
+
+  .is-fa .modal__counter {
+    right: auto;
+    left: 11px;
+  }
+
+  .is-fa .modal__nav--prev {
+    left: auto;
+    right: 9px;
+  }
+
+  .is-fa .modal__nav--next {
+    right: auto;
+    left: 9px;
   }
 }
 </style>
